@@ -1,6 +1,6 @@
 var express = require('express');
 var router = express.Router();
-const { ensureAuth, ensureGuest } = require('../middleware/auth')
+const { ensureAuth, ensureGuest, ensureAdminAuth } = require('../middleware/auth')
 
 var device_controller = require('../controllers/deviceController');
 
@@ -35,5 +35,11 @@ router.get('/device/:id', ensureAuth, device_controller.device_detail);
 
 // GET request for list of all Device items.
 router.get('/devices', ensureAuth, device_controller.device_list);
+
+// GET request for admin page
+router.get('/admin', ensureAdminAuth, device_controller.index_admin);
+
+// GET request to list all devices in database
+router.get('/admin/devices', ensureAdminAuth, device_controller.device_list_all);
 
 module.exports = router;

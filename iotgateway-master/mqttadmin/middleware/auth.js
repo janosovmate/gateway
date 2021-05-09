@@ -12,5 +12,12 @@ module.exports = {
         } else {
             return next()
         }
-    }
+    },
+    ensureAdminAuth: function(req, res, next){
+        if(req.isAuthenticated() && process.env.ADMIN_GOOGLE_ID == req.user.googleId) {
+            return next()
+        } else {
+            res.redirect('/home')
+        }
+    },
 }

@@ -6,7 +6,7 @@ var Device = require('../models/device');
 const { body,validationResult } = require('express-validator/check');
 const { sanitizeBody } = require('express-validator/filter');
 
-exports.index = function(req, res) {
+exports.index = function(req, res, next) {
     async.parallel({
         device_count: function(callback) {
             Device
@@ -14,28 +14,55 @@ exports.index = function(req, res) {
             .count({}, callback); // Pass an empty object as match condition to find all documents of this collection
         },
     }, function(err, results) {
-        res.render('index', { title: 'MQTT Admin', error: err, data: results });
+        res.render('index', { error: err, data: results, user:req.session.passport.user });
     });
 
 };
 
-// Display list of all Devices.
-exports.device_list = function(req, res) {
+exports.index_admin = function(req, res, next) {
+    async.parallel({
+        device_count: function(callback) {
+            Device
+            .count({}, callback); // Pass an empty object as match condition to find all documents of this collection
+        },
+    }, function(err, results) {
+        res.render('index_admin', { title: 'Welcome to MQTT Admin', error: err, data: results, user:req.session.passport.user });
+    });
+
+};
+
+// Display list of Devices of logged in user.
+exports.device_list = function(req, res, next) {
     Device.find({})
         .where('user').equals(String(req.session.passport.user.googleId))
         .exec(function (err, list_devices) {
             if (err) { return next(err); }
             //Successful, so render
-            res.render('device_list', { title: 'Device List', device_list: list_devices });
+            res.render('device_list', { title: 'Device List', device_list: list_devices, user: req.session.passport.user });
         });
 };
 
-// Display detail page for a specific Device.
-exports.device_detail = function(req, res) {
-    async.parallel({
 
+//Display list of all Devices
+exports.device_list_all = function(req, res, next) {
+    Device.find({})
+        .exec(function (err, list_devices) {
+            if (err) { return next(err); }
+            //Successful, so render
+            res.render('device_list_admin', { title: 'Device List', device_list: list_devices, user: req.session.passport.user });
+        });
+};
+
+
+// Display detail page for a specific Device.
+exports.device_detail = function(req, res, next) {
+    let id = String(req.session.passport.user.googleId)
+
+    async.parallel({
         device: function(callback) {
-            Device.findById(req.params.id)
+            Device
+                .findById(req.params.id)
+                .where('user').equals(String(id))
                 .exec(callback);
         },
 
@@ -47,14 +74,14 @@ exports.device_detail = function(req, res) {
             return next(err);
         }
         // Successful, so render
-        res.render('device_detail', { title: 'Device Detail', data: results.device} );
+        res.render('device_detail', { title: 'Device Detail', error: err, data: results.device, user: req.session.passport.user} );
     });
 
 };
 
 // Display Device create form on GET.
-exports.device_create_get = function(req, res) {
-    res.render('device_form', { title: 'Create Device' });
+exports.device_create_get = function(req, res, next) {
+    res.render('device_form', { title: 'Create Device' , user: req.session.passport.user});
 };
 
 // Handle Device create on POST.
@@ -124,7 +151,7 @@ exports.device_create_post = [
 ];
 
 // Display Device delete form on GET.
-exports.device_delete_get = function(req, res) {
+exports.device_delete_get = function(req, res, next) {
     async.parallel({
         device: function (callback) {
             Device.findById(req.params.id).exec(callback)
@@ -135,13 +162,13 @@ exports.device_delete_get = function(req, res) {
             res.redirect('/');
         }
         // Successful, so render.
-        res.render('device_delete', { title: 'Delete Device', device: results.device});
+        res.render('device_delete', { title: 'Delete Device', device: results.device, user: req.session.passport.user});
     });
 
 };
 
 // Handle Device delete on POST.
-exports.device_delete_post = function(req, res) {
+exports.device_delete_post = function(req, res, next) {
     async.parallel({
         device: function (callback) {
             Device.findById(req.body.device_id).exec(callback)
@@ -159,7 +186,7 @@ exports.device_delete_post = function(req, res) {
 };
 
 // Display Device update form on GET.
-exports.device_update_get = function(req, res) {
+exports.device_update_get = function(req, res, next) {
     Device.findById(req.params.id, function (err, device) {
         if (err) { return next(err); }
         if (device == null) { // No results.
@@ -168,7 +195,7 @@ exports.device_update_get = function(req, res) {
             return next(err);
         }
         // Success.
-        res.render('device_form', { title: 'Update Device', device: device });
+        res.render('device_form', { title: 'Update Device', device: device, user: req.session.passport.user });
 
     });
 };
